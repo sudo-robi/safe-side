@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Safe-Side — Hypertension Risk Prediction</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--crimson:#1a0808;--primary:#DC2626;--primary-dark:#991B1B;--red:#EF4444;--amber:#F59E0B;--green:#10B981;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--bg:#fef2f2;--radius:16px;--shadow:0 4px 20px rgba(0,0,0,.08)}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--crimson);display:flex;justify-content:center;min-height:100vh;color:var(--text);font-size:16px}
+#app{width:100%;max-width:430px;background:var(--bg);min-height:100vh;position:relative;display:flex;flex-direction:column}
+header{background:var(--crimson);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.logo span{color:var(--red)}
+.header-badge{background:rgba(255,255,255,.12);padding:4px 14px;border-radius:20px;font-size:16px;font-weight:500}
+main{flex:1;overflow-y:auto;padding:16px;padding-bottom:80px}
+.screen{display:none;animation:fadeIn .3s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+@keyframes pulseGlow{0%,100%{opacity:.6;r:7}50%{opacity:1;r:10}}
+.card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card-title{font-size:16px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+/* Dashboard */
+.profile-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700}
+.bracelet-status{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:500;color:var(--green);margin-bottom:14px}
+.dot-pulse{width:12px;height:12px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+.risk-banner{background:linear-gradient(135deg,var(--amber),#D97706);color:#fff;border-radius:var(--radius);padding:22px;margin-bottom:16px;text-align:center}
+.risk-banner .label{font-size:16px;text-transform:uppercase;letter-spacing:1px;opacity:.9}
+.risk-banner .value{font-size:40px;font-weight:800;margin:4px 0}
+.risk-banner .sub{font-size:16px;opacity:.9}
+.biomarker-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory}
+.biomarker-scroll::-webkit-scrollbar{height:4px}
+.biomarker-scroll::-webkit-scrollbar-thumb{background:var(--primary);border-radius:4px}
+.biomarker-card{min-width:140px;background:var(--card);border-radius:12px;padding:16px;box-shadow:var(--shadow);scroll-snap-align:start;border-left:4px solid var(--primary);flex-shrink:0}
+.biomarker-card .b-label{font-size:16px;color:var(--muted);font-weight:500;text-transform:uppercase}
+.biomarker-card .b-value{font-size:24px;font-weight:700;margin:4px 0}
+.biomarker-card .b-sub{font-size:16px;color:var(--muted)}
+.bp-log{display:flex;justify-content:space-between;align-items:center;font-size:16px;padding:6px 0}
+.bp-log .bp-value{font-weight:700;color:var(--primary)}
+.quick-actions{display:flex;gap:10px;margin-bottom:4px}
+.quick-actions button{flex:1;padding:14px;border:none;border-radius:12px;font-weight:600;font-size:16px;cursor:pointer;transition:transform .15s}
+.quick-actions button:active{transform:scale(.96)}
+.qa-primary{background:var(--primary);color:#fff}
+.qa-amber{background:var(--amber);color:#fff}
+.qa-red{background:var(--red);color:#fff}
+.learning-card{background:linear-gradient(135deg,var(--crimson),#2d0e0e);color:#fff;border-radius:var(--radius);padding:18px;font-size:16px;line-height:1.5;display:flex;align-items:center;gap:14px}
+.learning-card .icon{font-size:32px}
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--crimson);display:flex;justify-content:space-around;padding:8px 0 10px;z-index:100;border-top:1px solid rgba(255,255,255,.08)}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:rgba(255,255,255,.5);font-size:16px;cursor:pointer;padding:6px 8px;transition:color .2s;min-width:0}
+.nav-item svg{width:24px;height:24px;opacity:.6;transition:opacity .2s}
+.nav-item.active{color:var(--red)}
+.nav-item.active svg{opacity:1}
+.nav-item .nav-label{font-weight:500;font-size:16px;white-space:nowrap}
+/* Bracelet */
+.bracelet-display{display:flex;flex-direction:column;align-items:center;padding:14px 0}
+.wrist-container{position:relative;width:220px;height:280px;margin:0 auto 16px}
+.bracelet-label{text-align:center;margin-bottom:18px}
+.bracelet-label h3{font-size:18px;font-weight:700}
+.bracelet-label p{font-size:16px;color:var(--muted)}
+.biomarker-list{display:flex;flex-direction:column;gap:12px}
+.biomarker-item{display:flex;align-items:center;gap:16px;padding:14px 16px;background:var(--card);border-radius:12px;box-shadow:var(--shadow)}
+.biomarker-item .b-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.biomarker-item .b-info{flex:1}
+.biomarker-item .b-info h4{font-size:16px;font-weight:600}
+.biomarker-item .b-info p{font-size:16px;color:var(--muted)}
+.biomarker-item .b-badge{font-size:16px;font-weight:600;padding:6px 14px;border-radius:8px}
+.badge-green{background:#d1fae5;color:#065f46}
+.badge-amber{background:#fef3c7;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.footnote{font-size:16px;color:var(--muted);text-align:center;padding:16px 0 8px;line-height:1.5;font-style:italic}
+/* Risk */
+.donut-wrap{display:flex;flex-direction:column;align-items:center;padding:14px 0}
+.donut{position:relative;width:170px;height:170px}
+.donut svg{transform:rotate(-90deg)}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.donut-center .pct{font-size:40px;font-weight:800;color:var(--amber)}
+.donut-center .lbl{font-size:16px;color:var(--muted);font-weight:500}
+.risk-table{width:100%;border-collapse:collapse;font-size:16px}
+.risk-table th{text-align:left;font-size:16px;color:var(--muted);text-transform:uppercase;padding:8px 4px;border-bottom:1px solid #e5e7eb}
+.risk-table td{padding:10px 4px;border-bottom:1px solid #f3f4f6}
+.risk-table .weight{font-weight:600;text-align:right}
+.weight-normal{color:var(--green)}
+.weight-low{color:var(--amber)}
+.weight-high{color:var(--primary)}
+.modifiers{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.modifier-tag{background:#f3f4f6;padding:6px 14px;border-radius:16px;font-size:16px;font-weight:500}
+.modifier-tag.high{background:#fee2e2;color:var(--primary)}
+.rec-box{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:var(--radius);padding:18px;font-size:16px;line-height:1.6}
+.rec-box .rec-title{font-weight:700;font-size:18px;margin-bottom:8px}
+.rec-box .powered{font-size:16px;opacity:.7;margin-top:12px}
+.recalc-btn{width:100%;padding:16px;background:var(--crimson);color:#fff;border:none;border-radius:12px;font-weight:600;font-size:16px;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.recalc-btn:disabled{opacity:.6}
+.explain-section{margin-top:10px}
+.explain-toggle{background:none;border:none;color:var(--primary);font-weight:600;font-size:16px;cursor:pointer;padding:10px 0;width:100%;text-align:left}
+.explain-content{padding:12px 16px;font-size:16px;line-height:1.7;color:var(--muted);background:#f9fafb;border-radius:10px;display:none}
+.explain-content.show{display:block}
+/* Care Circle */
+.member-card{display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border-radius:12px;margin-bottom:12px;box-shadow:var(--shadow)}
+.member-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px}
+.member-info{flex:1}
+.member-info h4{font-size:16px;font-weight:600}
+.member-info p{font-size:16px;color:var(--muted)}
+.member-btn{padding:10px 18px;border:none;border-radius:10px;font-weight:600;font-size:16px;cursor:pointer;transition:transform .15s}
+.member-btn:active{transform:scale(.95)}
+.emergency-btn{width:100%;padding:20px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-weight:700;font-size:18px;cursor:pointer;margin:10px 0;transition:transform .15s;letter-spacing:.5px}
+.emergency-btn:active{transform:scale(.97)}
+.map-placeholder{position:relative;width:100%;height:150px;border-radius:var(--radius);overflow:hidden;margin-top:12px}
+.map-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);color:#fff;font-weight:600;font-size:16px;text-align:center;padding:10px}
+/* Symptoms */
+.symptom-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.symptom-chip{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:10px;border:2px solid #e5e7eb;background:var(--card);cursor:pointer;font-size:16px;font-weight:500;transition:all .15s;user-select:none}
+.symptom-chip.selected{border-color:var(--primary);background:#fef2f2;color:var(--primary)}
+.symptom-chip .check{width:20px;height:20px;border-radius:4px;border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.symptom-chip.selected .check{border-color:var(--primary);background:var(--primary);color:#fff}
+.slider-wrap{margin:14px 0}
+.slider-wrap label{font-size:16px;font-weight:500;display:block;margin-bottom:6px}
+.slider-wrap input[type=range]{width:100%;accent-color:var(--primary)}
+.slider-val{text-align:center;font-size:28px;font-weight:700;color:var(--primary)}
+.submit-btn{width:100%;padding:16px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-weight:600;font-size:16px;cursor:pointer;transition:opacity .2s}
+.submit-btn:active{opacity:.8}
+.divider{text-align:center;font-size:16px;color:var(--muted);margin:18px 0;position:relative}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:30%;height:1px;background:#e5e7eb}
+.divider::before{left:0}
+.divider::after{right:0}
+/* USSD Phone */
+.ussd-phone{background:#1a1a2e;border-radius:24px;padding:16px 12px 20px;margin-bottom:12px;border:3px solid #444;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.ussd-phone::before{content:'';display:block;width:50px;height:5px;background:#333;border-radius:4px;margin:0 auto 12px}
+.ussd-screen{background:#0a3d0a;border-radius:8px;padding:16px 14px;color:#b8f0b8;font-family:'Courier New',monospace;font-size:16px;line-height:1.8;min-height:200px;border:1px solid #0a5a0a}
+.ussd-header{color:#8fdf8f;font-weight:700;margin-bottom:10px;font-size:16px;border-bottom:1px dashed #0a5a0a;padding-bottom:8px}
+.ussd-item{cursor:pointer;padding:4px 0;transition:color .2s}
+.ussd-item:hover{color:#fff}
+.ussd-input{margin-top:12px;border-top:1px dashed #0a5a0a;padding-top:10px;display:flex;gap:8px}
+.ussd-input input{flex:1;background:transparent;border:1px solid #0a5a0a;color:#b8f0b8;padding:8px 10px;border-radius:4px;font-family:'Courier New',monospace;font-size:16px;outline:none}
+.ussd-input input::placeholder{color:#0a6a0a}
+.ussd-input button{background:#145214;border:none;color:#b8f0b8;padding:8px 16px;border-radius:4px;font-weight:600;cursor:pointer;font-size:16px}
+.sms-option{text-align:center;font-size:16px;color:var(--muted);padding:10px}
+.lang-toggle{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.lang-btn{padding:8px 18px;border-radius:20px;border:1px solid #d1d5db;background:var(--card);font-size:16px;font-weight:500;cursor:pointer;transition:all .15s}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+/* Meds */
+.med-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--card);border-radius:12px;margin-bottom:12px;box-shadow:var(--shadow)}
+.med-status{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0}
+.med-status.taken{background:#d1fae5;color:#065f46}
+.med-status.missed{background:#fee2e2;color:#991b1b}
+.med-info{flex:1}
+.med-info h4{font-size:16px;font-weight:600}
+.med-info p{font-size:16px;color:var(--muted)}
+.adherence-bar{height:14px;background:#e5e7eb;border-radius:8px;overflow:hidden;margin:10px 0}
+.adherence-fill{height:100%;border-radius:8px;background:var(--amber);transition:width .5s}
+.adherence-label{font-size:16px;font-weight:600;display:flex;justify-content:space-between}
+.refill-card{background:linear-gradient(135deg,var(--crimson),#2d0e0e);color:#fff;border-radius:var(--radius);padding:18px;margin-top:10px}
+.refill-card p{font-size:16px;line-height:1.5;margin-bottom:12px}
+.refill-btn{background:var(--primary);color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:600;font-size:16px;cursor:pointer}
+.pharmacist-note{display:flex;align-items:center;gap:12px;padding:14px;background:#fffbeb;border-radius:10px;font-size:16px;color:#92400e;margin-top:10px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:14px 28px;border-radius:14px;font-size:16px;font-weight:500;opacity:0;transition:opacity .3s;z-index:200;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">Safe-<span>Side</span></div>
+    <span class="header-badge">❤️ CVD Monitor</span>
+  </header>
+
+  <main id="mainContent">
+    <!-- DASHBOARD -->
+    <div class="screen active" id="screen-home">
+      <div class="profile-row">
+        <div class="avatar">A</div>
+        <div>
+          <div style="font-size:18px;font-weight:700">Mr. Adebayo, 58</div>
+          <div style="font-size:16px;color:var(--muted)">Patient ID: CW-2024-0842</div>
+        </div>
+      </div>
+      <div class="bracelet-status">
+        <span class="dot-pulse"></span>
+        Connected ✓ &nbsp;·&nbsp; <span style="color:var(--muted)">Online</span>
+      </div>
+      <div class="risk-banner">
+        <div class="label">Current Risk Level</div>
+        <div class="value" id="riskValue">MODERATE RISK</div>
+        <div class="sub" id="riskSub">64% — 5-year CVD risk estimate</div>
+      </div>
+      <div class="card-title">Biomarker Summary</div>
+      <div class="biomarker-scroll">
+        <div class="biomarker-card"><div class="b-label">Heart Rate</div><div class="b-value" id="dashHr">78</div><div class="b-sub">bpm (PPG)</div></div>
+        <div class="biomarker-card"><div class="b-label">HRV</div><div class="b-value">42</div><div class="b-sub">ms (PPG)</div></div>
+        <div class="biomarker-card"><div class="b-label">Sleep Quality</div><div class="b-value">61%</div><div class="b-sub">movement + HR</div></div>
+        <div class="biomarker-card"><div class="b-label">Physical Activity</div><div class="b-value" style="color:var(--amber)">Low</div><div class="b-sub">accelerometer</div></div>
+      </div>
+      <div class="card" style="margin-top:6px">
+        <div class="card-title">Blood Pressure</div>
+        <div class="bp-log">
+          <span><span class="bp-value">138/89</span> mmHg</span>
+          <span style="color:var(--muted)">logged 2h ago</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <span style="font-size:16px;color:var(--muted)">Systolic ▲</span>
+          <span style="font-size:16px;color:var(--muted)">· Diastolic ▲</span>
+          <span style="color:var(--primary);font-weight:600">Elevated</span>
+        </div>
+      </div>
+      <div class="quick-actions">
+        <button class="qa-primary" onclick="navigateTo('symptoms')">Log Symptoms</button>
+        <button class="qa-amber" onclick="showToast('Log BP feature coming soon')">Log BP</button>
+        <button class="qa-red" onclick="showToast('Emergency alert sent to family!')">Alert Family</button>
+      </div>
+      <div class="learning-card" style="margin-top:14px">
+        <div class="icon">💡</div>
+        <div><strong>Did you know?</strong> Missing 3+ doses of antihypertensives increases stroke risk by 40%. Take your meds on time!</div>
+      </div>
+    </div>
+
+    <!-- BRACELET -->
+    <div class="screen" id="screen-bracelet">
+      <div class="card-title">Smart Bracelet Live Feed</div>
+      <div class="bracelet-display">
+        <div class="wrist-container">
+          <svg viewBox="0 0 220 310" fill="none" style="width:100%;height:100%">
+            <defs>
+              <linearGradient id="armGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#d4a574"/><stop offset="100%" stop-color="#f5d6b8"/></linearGradient>
+              <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a2a4e"/><stop offset="100%" stop-color="#1a1a2e"/></linearGradient>
+              <filter id="ledGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity=".3"/></filter>
+            </defs>
+            <!-- Arm -->
+            <path d="M58 290 Q53 255 56 220 L68 130 Q72 108 80 96 L100 62 Q110 46 120 46 Q130 46 140 62 L160 96 Q168 108 172 130 L184 220 Q187 255 182 290" fill="#f5d6b8" stroke="#e8c4a0" stroke-width="1.5"/>
+            <path d="M58 290 Q53 255 56 220 L68 130 Q72 108 80 96 L100 62 Q110 46 120 46 Q130 46 140 62 L160 96 Q168 108 172 130 L184 220 Q187 255 182 290" fill="url(#armGrad)" opacity=".25"/>
+            <!-- Top band -->
+            <rect x="58" y="160" width="124" height="24" rx="8" fill="#1a1a2e" stroke="#333" stroke-width="1.2"/>
+            <rect x="58" y="160" width="124" height="24" rx="8" fill="url(#bandGrad)" opacity=".4"/>
+            <!-- Watch body -->
+            <rect x="62" y="170" width="116" height="74" rx="16" fill="#0A1628" stroke="var(--primary)" stroke-width="2" filter="url(#shadow)"/>
+            <!-- Watch screen bezel -->
+            <rect x="68" y="176" width="104" height="62" rx="10" fill="#0d1f3c"/>
+            <!-- Status bar -->
+            <text x="74" y="186" fill="#6b7280" font-size="5" font-family="monospace">09:41</text>
+            <rect x="156" y="180" width="12" height="5" rx="1.5" fill="none" stroke="#6b7280" stroke-width=".8"/>
+            <rect x="157" y="181" width="7" height="3" rx="1" fill="#10B981"/>
+            <!-- App grid on watch screen -->
+            <!-- Row 1 -->
+            <rect x="72" y="190" width="28" height="20" rx="4" fill="#DC2626" opacity=".9"/>
+            <text x="86" y="197" text-anchor="middle" fill="#fff" font-size="5" font-family="monospace" font-weight="bold">HR</text>
+            <text x="86" y="206" text-anchor="middle" fill="#fff" font-size="4.5" font-family="monospace">78 bpm</text>
+
+            <rect x="104" y="190" width="28" height="20" rx="4" fill="#F59E0B" opacity=".9"/>
+            <text x="118" y="197" text-anchor="middle" fill="#fff" font-size="5" font-family="monospace" font-weight="bold">BP</text>
+            <text x="118" y="206" text-anchor="middle" fill="#fff" font-size="4.5" font-family="monospace">138/89</text>
+
+            <rect x="136" y="190" width="28" height="20" rx="4" fill="#4F8EF7" opacity=".9"/>
+            <text x="150" y="197" text-anchor="middle" fill="#fff" font-size="5" font-family="monospace" font-weight="bold">Risk</text>
+            <text x="150" y="206" text-anchor="middle" fill="#fff" font-size="4.5" font-family="monospace">64%</text>
+
+            <!-- Row 2 -->
+            <rect x="72" y="214" width="28" height="20" rx="4" fill="#10B981" opacity=".9"/>
+            <text x="86" y="221" text-anchor="middle" fill="#fff" font-size="5" font-family="monospace" font-weight="bold">Sleep</text>
+            <text x="86" y="230" text-anchor="middle" fill="#fff" font-size="4.5" font-family="monospace">61%</text>
+
+            <rect x="104" y="214" width="28" height="20" rx="4" fill="#8B5CF6" opacity=".9"/>
+            <text x="118" y="221" text-anchor="middle" fill="#fff" font-size="5" font-family="monospace" font-weight="bold">Steps</text>
+            <text x="118" y="230" text-anchor="middle" fill="#fff" font-size="4.5" font-family="monospace">2,341</text>
+
+            <rect x="136" y="214" width="28" height="20" rx="4" fill="#EC4899" opacity=".9"/>
+            <text x="150" y="221" text-anchor="middle" fill="#fff" font-size="4.5" font-family="monospace" font-weight="bold">Meds</text>
+            <text x="150" y="230" text-anchor="middle" fill="#fff" font-size="4.5" font-family="monospace">2/3 ✓</text>
+
+            <!-- Glowing LED sensor -->
+            <circle cx="120" cy="244" r="8" fill="#10B981" filter="url(#ledGlow)"/>
+            <circle cx="120" cy="244" r="3" fill="#6EE7B7" opacity=".8"/>
+
+            <!-- Bottom band -->
+            <rect x="58" y="244" width="124" height="24" rx="8" fill="#1a1a2e" stroke="#333" stroke-width="1.2"/>
+            <rect x="58" y="244" width="124" height="24" rx="8" fill="url(#bandGrad)" opacity=".4"/>
+            <!-- Clasp -->
+            <rect x="105" y="178" width="30" height="48" rx="4" fill="none" stroke="var(--primary)" stroke-width=".5" opacity=".3"/>
+          </svg>
+        </div>
+        <div class="bracelet-label">
+          <h3>Safe-Side Band v1</h3>
+          <p>Worn on wrist · PPG + Accelerometer + App Display</p>
+        </div>
+      </div>
+      <div class="biomarker-list">
+        <div class="biomarker-item"><div class="b-icon" style="background:#fee2e2">❤️</div><div class="b-info"><h4>Heart Rate (HR)</h4><p>Measured via PPG</p></div><span class="b-badge badge-green" id="bioHr">78 bpm</span></div>
+        <div class="biomarker-item"><div class="b-icon" style="background:#fce7f3">📊</div><div class="b-info"><h4>Heart Rate Variability (HRV)</h4><p>Measured via PPG</p></div><span class="b-badge badge-amber">42 ms</span></div>
+        <div class="biomarker-item"><div class="b-icon" style="background:#fef3c7">🩸</div><div class="b-info"><h4>Blood Pressure Trends</h4><p>Home BP monitor / pharmacy</p></div><span class="b-badge badge-red">Rising ⚠</span></div>
+        <div class="biomarker-item"><div class="b-icon" style="background:#d1fae5">🏃</div><div class="b-info"><h4>Physical Activity</h4><p>Accelerometer in bracelet</p></div><span class="b-badge badge-amber">Low</span></div>
+        <div class="biomarker-item"><div class="b-icon" style="background:#ede9fe">😴</div><div class="b-info"><h4>Sleep Quality</h4><p>Movement &amp; heart rate changes</p></div><span class="b-badge badge-blue">61%</span></div>
+        <div class="biomarker-item"><div class="b-icon" style="background:#fce7f3">🤕</div><div class="b-info"><h4>Symptom Biomarkers</h4><p>App / SMS / USSD</p></div><span class="b-badge badge-amber">Headache</span></div>
+      </div>
+      <div class="footnote">The bracelet is a sensor. The prediction comes from combining sensor data + symptom data + medication adherence + BP trends + comorbidities + cardiovascular history.</div>
+    </div>
+
+    <!-- RISK PREDICTION -->
+    <div class="screen" id="screen-risk">
+      <div class="card-title">AI Risk Assessment</div>
+      <div class="card">
+        <div class="donut-wrap">
+          <div class="donut">
+            <svg width="170" height="170" viewBox="0 0 170 170">
+              <circle cx="85" cy="85" r="66" fill="none" stroke="#e5e7eb" stroke-width="16"/>
+              <circle cx="85" cy="85" r="66" fill="none" stroke="#F59E0B" stroke-width="16" stroke-dasharray="414.7" stroke-dashoffset="149.3" stroke-linecap="round" id="riskArc"/>
+            </svg>
+            <div class="donut-center">
+              <div class="pct" id="riskPct">64%</div>
+              <div class="lbl">Moderate Risk</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Prediction Breakdown</div>
+        <table class="risk-table">
+          <tr><th>Factor</th><th>Value</th><th>Weight</th></tr>
+          <tr><td>Heart Rate</td><td>78 bpm</td><td class="weight weight-normal">Normal</td></tr>
+          <tr><td>HRV</td><td>42 ms</td><td class="weight weight-low">Low</td></tr>
+          <tr><td>BP Trend (7 days)</td><td>Rising</td><td class="weight weight-high">High ⚠</td></tr>
+          <tr><td>Medication Adherence</td><td>70%</td><td class="weight weight-low">Medium</td></tr>
+          <tr><td>Symptom Reports</td><td>Headache x2</td><td class="weight weight-low">Medium</td></tr>
+          <tr><td>Comorbidities</td><td>CKD, Obesity</td><td class="weight weight-high">High ⚠</td></tr>
+          <tr><td>Previous Cardiovascular</td><td>Stroke 2021</td><td class="weight weight-high">High ⚠</td></tr>
+          <tr><td>Physical Activity</td><td>Low</td><td class="weight weight-low">Medium</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Risk Modifiers</div>
+        <div class="modifiers">
+          <span class="modifier-tag high">Age: 58</span>
+          <span class="modifier-tag high">Sex: Male</span>
+          <span class="modifier-tag high">CKD</span>
+          <span class="modifier-tag high">Previous Stroke</span>
+          <span class="modifier-tag high">Heart Failure</span>
+        </div>
+      </div>
+      <div class="rec-box">
+        <div class="rec-title">🤖 AI Recommendation</div>
+        Consult your physician within 48 hours. Ensure medication adherence. Reduce sodium intake. Monitor BP twice daily.
+        <div class="powered">Powered by Gemini AI, Intelligent Alert Filtering</div>
+      </div>
+      <button class="recalc-btn" id="recalcBtn" onclick="recalculateRisk()">🔄 Recalculate Risk</button>
+      <div class="explain-section">
+        <button class="explain-toggle" onclick="toggleExplain()">▼ Why this score?</button>
+        <div class="explain-content" id="explainContent">
+          <strong>Your risk is Moderate (64%) because:</strong><br><br>
+          • Your <strong>blood pressure has been rising</strong> over the past week, which increases strain on your arteries.<br>
+          • You have <strong>Chronic Kidney Disease (CKD)</strong> and a <strong>previous stroke history</strong> — both are major risk factors.<br>
+          • Your <strong>medication adherence is 70%</strong> — missing doses means your BP isn't fully controlled.<br>
+          • <strong>Low physical activity</strong> and <strong>reduced HRV</strong> suggest your cardiovascular system is under stress.<br>
+          • On the positive side, your heart rate is within normal range and you're reporting symptoms early.<br><br>
+          <strong>What you can do:</strong> Take medications consistently, reduce salt, stay active, and monitor BP daily.
+        </div>
+      </div>
+    </div>
+
+    <!-- CARE CIRCLE -->
+    <div class="screen" id="screen-care">
+      <div class="card-title">Care Circle</div>
+      <div class="member-card">
+        <div class="member-avatar" style="background:#fee2e2">👤</div>
+        <div class="member-info"><h4>Dr. Okonkwo</h4><p>Physician · Last notified: Today 9:14AM</p></div>
+        <button class="member-btn" style="background:var(--primary);color:#fff" onclick="showToast('Notified Dr. Okonkwo')">Notify</button>
+      </div>
+      <div class="member-card">
+        <div class="member-avatar" style="background:#fef3c7">💊</div>
+        <div class="member-info"><h4>PharmaCare Ikeja</h4><p>Pharmacist · Medication due: Tomorrow</p></div>
+        <button class="member-btn" style="background:var(--amber);color:#fff" onclick="showToast('Messaged PharmaCare Ikeja')">Message</button>
+      </div>
+      <div class="member-card">
+        <div class="member-avatar" style="background:#d1fae5">👨‍👩‍👦</div>
+        <div class="member-info"><h4>Chidi Adebayo</h4><p>Son · Emergency contact</p></div>
+        <button class="member-btn" style="background:var(--red);color:#fff" onclick="showToast('Alerted Chidi Adebayo')">Alert</button>
+      </div>
+      <div class="member-card">
+        <div class="member-avatar" style="background:#ede9fe">👩</div>
+        <div class="member-info"><h4>Ngozi Adebayo</h4><p>Daughter · Emergency contact</p></div>
+        <button class="member-btn" style="background:var(--red);color:#fff" onclick="showToast('Alerted Ngozi Adebayo')">Alert</button>
+      </div>
+      <button class="emergency-btn" onclick="showToast('🚨 EMERGENCY ALERT sent to all care circle members!')">🚨 SEND EMERGENCY ALERT TO ALL</button>
+      <div class="card">
+        <div class="card-title">Community Risk Map</div>
+        <div class="map-placeholder">
+          <div class="map-overlay">🗺️ 3 high-risk patients in your community area<br><span style="font-size:16px;opacity:.8">Tap to expand map</span></div>
+          <svg width="100%" height="100%" viewBox="0 0 300 150" style="filter:blur(6px)"><rect width="300" height="150" fill="#e5e7eb"/><circle cx="100" cy="60" r="20" fill="var(--primary)" opacity=".4"/><circle cx="180" cy="80" r="15" fill="var(--amber)" opacity=".4"/><circle cx="230" cy="40" r="25" fill="var(--red)" opacity=".4"/><path d="M0 100 Q75 70 150 95 T300 80" stroke="#9ca3af" stroke-width="1" fill="none"/><rect x="20" y="20" width="40" height="30" fill="#9ca3af" opacity=".3" rx="2"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYMPTOM LOG -->
+    <div class="screen" id="screen-symptoms">
+      <div class="card-title">Log Symptoms</div>
+      <div class="card">
+        <p style="font-size:16px;margin-bottom:12px;font-weight:500">Select your symptoms:</p>
+        <div class="symptom-grid" id="symptomGrid">
+          <div class="symptom-chip" data-symptom="Dizziness" onclick="toggleSymptom(this)"><span class="check">✓</span> Dizziness</div>
+          <div class="symptom-chip" data-symptom="Headache" onclick="toggleSymptom(this)"><span class="check">✓</span> Headache</div>
+          <div class="symptom-chip" data-symptom="Palpitations" onclick="toggleSymptom(this)"><span class="check">✓</span> Palpitations</div>
+          <div class="symptom-chip" data-symptom="Chest Discomfort" onclick="toggleSymptom(this)"><span class="check">✓</span> Chest Discomfort</div>
+          <div class="symptom-chip" data-symptom="Dyspnea" style="grid-column:1/-1" onclick="toggleSymptom(this)"><span class="check">✓</span> Dyspnea (shortness of breath)</div>
+        </div>
+        <div class="slider-wrap">
+          <label>Severity: <span id="severityLabel">5</span>/10</label>
+          <input type="range" min="1" max="10" value="5" id="severitySlider" oninput="document.getElementById('severityLabel').textContent=this.value">
+          <div class="slider-val" id="severityDisplay">😐</div>
+        </div>
+        <button class="submit-btn" onclick="submitSymptomLog()">Submit via App</button>
+      </div>
+      <div class="divider">— No smartphone? —</div>
+      <div class="card">
+        <div class="card-title">USSD Access</div>
+        <div class="ussd-phone">
+          <div class="ussd-screen">
+            <div class="ussd-header">📱 *384*1#</div>
+            <div>Welcome to Safe-Side</div>
+            <div style="border-bottom:1px dashed #0a5a0a;margin:6px 0 8px"></div>
+            <div class="ussd-item" onclick="showToast('Symptom report submitted via USSD')"><span style="color:#8fdf8f">1.</span> Log Symptoms</div>
+            <div class="ussd-item" onclick="navigateTo('risk')"><span style="color:#8fdf8f">2.</span> Check Risk Level</div>
+            <div class="ussd-item" onclick="showToast('Alert sent to family via USSD')"><span style="color:#8fdf8f">3.</span> Alert Family</div>
+            <div class="ussd-item" onclick="navigateTo('meds')"><span style="color:#8fdf8f">4.</span> Medication Reminder</div>
+            <div class="ussd-input">
+              <input type="text" placeholder="Reply..." id="ussdInput">
+              <button onclick="handleUssdReply()">Send</button>
+            </div>
+          </div>
+        </div>
+        <div class="sms-option">💬 Send symptom code to <strong>20123</strong> (e.g., "DZ HX")</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Multilingual</div>
+        <div class="lang-toggle">
+          <button class="lang-btn active" data-lang="en" onclick="setLanguage('en',this)">English</button>
+          <button class="lang-btn" data-lang="yo" onclick="setLanguage('yo',this)">Yoruba</button>
+          <button class="lang-btn" data-lang="ig" onclick="setLanguage('ig',this)">Igbo</button>
+          <button class="lang-btn" data-lang="ha" onclick="setLanguage('ha',this)">Hausa</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEDICATION ADHERENCE -->
+    <div class="screen" id="screen-meds">
+      <div class="card-title">Medication Tracker</div>
+      <div class="med-item">
+        <div class="med-status taken">✓</div>
+        <div class="med-info"><h4>Amlodipine 5mg</h4><p>8:00 AM · Taken</p></div>
+      </div>
+      <div class="med-item">
+        <div class="med-status taken">✓</div>
+        <div class="med-info"><h4>Lisinopril 10mg</h4><p>8:00 AM · Taken</p></div>
+      </div>
+      <div class="med-item">
+        <div class="med-status missed">✗</div>
+        <div class="med-info"><h4>Hydrochlorothiazide 25mg</h4><p>2:00 PM · MISSED ⚠</p></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Adherence Score</div>
+        <div class="adherence-label"><span>This week</span><span id="adherencePct">70%</span></div>
+        <div class="adherence-bar"><div class="adherence-fill" style="width:70%" id="adherenceFill"></div></div>
+        <p style="font-size:16px;color:var(--muted);margin-top:8px">Goal: ≥80% · 7/10 doses taken</p>
+      </div>
+      <div class="refill-card">
+        <p>💊 <strong>Amlodipine refill due in 4 days</strong> — PharmaCare Ikeja has stock</p>
+        <button class="refill-btn" onclick="showToast('Refill ordered from PharmaCare Ikeja ✓')">Order Refill</button>
+      </div>
+      <div class="pharmacist-note">
+        <span>⚠️</span>
+        <span><strong>Pharmacist note:</strong> Avoid grapefruit with Amlodipine</span>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="navigateTo('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1"/></svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('bracelet')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="16" rx="3"/><path d="M9 10h6M9 14h4"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg>
+      <span class="nav-label">Bracelet</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('risk')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <span class="nav-label">Risk</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('care')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span class="nav-label">Circle</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('symptoms')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+      <span class="nav-label">Symptoms</span>
+    </button>
+    <button class="nav-item" onclick="navigateTo('meds')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 4.5L3 12l7.5 7.5"/><path d="M13.5 4.5L21 12l-7.5 7.5"/></svg>
+      <span class="nav-label">Meds</span>
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const translations = {
+  en:{logSymptoms:'Log Symptoms',logBP:'Log BP'},
+  yo:{logSymptoms:'Ṣàmì Àìsàn',logBP:'Ṣàmì BP'},
+  ig:{logSymptoms:'Deba Ọrịa',logBP:'Deba BP'},
+  ha:{logSymptoms:'Alamar Ciwon',logBP:'Rubuta BP'}
+};
+let selectedSymptoms = new Set();
+
+function navigateTo(tab){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-item')[['home','bracelet','risk','care','symptoms','meds'].indexOf(tab)].classList.add('active');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+function toggleSymptom(el){
+  el.classList.toggle('selected');
+  const s=el.dataset.symptom;
+  selectedSymptoms.has(s)?selectedSymptoms.delete(s):selectedSymptoms.add(s);
+}
+
+function submitSymptomLog(){
+  const sev=document.getElementById('severitySlider').value;
+  if(selectedSymptoms.size===0){showToast('Please select at least one symptom');return}
+  showToast('✓ Symptoms logged: '+[...selectedSymptoms].join(', ')+' (severity: '+sev+'/10)');
+  document.querySelectorAll('.symptom-chip.selected').forEach(c=>c.classList.remove('selected'));
+  selectedSymptoms.clear();
+}
+
+function handleUssdReply(){
+  const input=document.getElementById('ussdInput');
+  const val=input.value.trim();
+  if(!val){showToast('Please type a response');return}
+  showToast('USSD response sent: '+val);
+  input.value='';
+}
+
+function recalculateRisk(){
+  const btn=document.getElementById('recalcBtn');btn.disabled=true;
+  btn.textContent='⏳ Recalculating...';
+  document.getElementById('explainContent').classList.remove('show');
+  setTimeout(()=>{
+    const risks=[62,64,67,59,61,65,63];const r=risks[Math.floor(Math.random()*risks.length)];
+    document.getElementById('riskPct').textContent=r+'%';
+    document.getElementById('riskValue').textContent=r>65?'HIGH RISK':r>60?'MODERATE RISK':'LOW RISK';
+    document.getElementById('riskSub').textContent=r+'% — 5-year CVD risk estimate';
+    const colors={HIGH:'#EF4444',MODERATE:'#F59E0B',LOW:'#10B981'};
+    const level=document.getElementById('riskValue').textContent.includes('HIGH')?'HIGH':document.getElementById('riskValue').textContent.includes('MODERATE')?'MODERATE':'LOW';
+    document.querySelector('.risk-banner').style.background='linear-gradient(135deg,'+colors[level]+','+{HIGH:'#DC2626',MODERATE:'#D97706',LOW:'#059669'}[level]+')';
+    const offset=414.7-(r/100*414.7);document.getElementById('riskArc').setAttribute('stroke-dashoffset',offset);
+    document.getElementById('riskArc').setAttribute('stroke',colors[level]);
+    document.getElementById('dashHr').textContent=74+Math.floor(Math.random()*8);
+    document.getElementById('bioHr').textContent=document.getElementById('dashHr').textContent+' bpm';
+    btn.disabled=false;btn.textContent='🔄 Recalculate Risk';
+    showToast('✓ Risk recalculated: '+r+'%');
+  },2000);
+}
+
+function toggleExplain(){document.getElementById('explainContent').classList.toggle('show')}
+
+function setLanguage(lang,btn){
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const t=translations[lang]||translations.en;
+  document.querySelectorAll('.qa-primary')[0].textContent=t.logSymptoms;
+  document.querySelectorAll('.qa-amber')[0].textContent=t.logBP;
+}
+
+document.getElementById('severitySlider').addEventListener('input',function(){
+  const emojis=['😌','🙂','😐','😟','😰','😣','😖','🤕','😵','🚨'];
+  document.getElementById('severityDisplay').textContent=emojis[this.value-1]||'😐';
+});
+
+document.getElementById('riskArc').setAttribute('stroke-dashoffset','149.3');
+</script>
+</body>
+</html>

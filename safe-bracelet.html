@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe-Side Mockup</title>
+    <style>
+        :root {
+            --bg-color: #0b132b;
+            --phone-bg: #0d1b2a;
+            --phone-border: #1b263b;
+            --accent-gold: #f4a261;
+            --accent-blue: #0077b6;
+            --accent-green: #2a9d8f;
+            --accent-red: #e63946;
+            --text-main: #e0e1dd;
+            --text-muted: #8d99ae;
+            --card-bg: #152238;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .presentation-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 80px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* --- BRACELET / HARDWARE SIDE --- */
+        .hardware-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .charging-dock {
+            width: 240px;
+            height: 160px;
+            background: #d4a373;
+            border-radius: 50% 50% 40% 40% / 40% 40% 60% 60%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .dock-indent {
+            position: absolute;
+            bottom: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .dock-dot {
+            width: 24px;
+            height: 24px;
+            background: #c39262;
+            border-radius: 50%;
+        }
+
+        .bracelet-strap {
+            position: absolute;
+            width: 320px;
+            height: 64px;
+            background: #1d2436;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            z-index: 2;
+        }
+
+        .strap-left, .strap-right {
+            width: 40px;
+            height: 48px;
+            background: #151a26;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .strap-right {
+            gap: 3px;
+            flex-direction: column;
+        }
+        .sensor-pin {
+            width: 4px;
+            height: 4px;
+            background: #333;
+            border-radius: 50%;
+        }
+
+        .bracelet-screen {
+            width: 130px;
+            height: 110px;
+            background: #091124;
+            border: 3px solid #3a506b;
+            border-radius: 16px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .ecg-line-small {
+            width: 100%;
+            height: 40px;
+            stroke: #4ea8de;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .led-indicators {
+            position: absolute;
+            bottom: 6px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .led {
+            width: 5px;
+            height: 5px;
+            background: #4cc9f0;
+            border-radius: 50%;
+        }
+        .led.green { background: #2a9d8f; }
+
+        .connection-line {
+            stroke: #4ea8de;
+            stroke-dasharray: 6;
+            animation: dash 30s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+
+        /* --- PHONE APP SIDE --- */
+        .phone-container {
+            width: 380px;
+            height: 780px;
+            background: var(--phone-bg);
+            border: 12px solid var(--phone-border);
+            border-radius: 40px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Speaker Notch */
+        .phone-container::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: #2b3a4a;
+            border-radius: 2px;
+        }
+
+        /* Home Indicator Bar */
+        .phone-container::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 110px;
+            height: 4px;
+            background: #2b3a4a;
+            border-radius: 2px;
+        }
+
+        /* Top Status Elements */
+        .app-header-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .app-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #2a9d8f;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #2a9d8f;
+        }
+
+        /* App UI Modules */
+        .scrollable-content {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 2px;
+        }
+
+        /* Hide scrollbar for clean presentation */
+        .scrollable-content::-webkit-scrollbar {
+            width: 0px;
+        }
+
+        .main-monitor-card {
+            background: #22252a;
+            border: 1.5px solid var(--accent-gold);
+            border-radius: 16px;
+            padding: 16px;
+            height: 100px;
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .ecg-wave-large {
+            width: 100%;
+            height: 60px;
+            stroke: var(--accent-gold);
+            stroke-width: 2.5;
+            fill: none;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 65%;
+            height: 100%;
+            background: var(--accent-gold);
+        }
+
+        .grid-3-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .small-card {
+            background: var(--card-bg);
+            height: 68px;
+            border-radius: 12px;
+        }
+
+        .wide-card-muted {
+            background: #28303d;
+            height: 44px;
+            border-radius: 8px;
+        }
+
+        .alert-zone-card {
+            background: #2a1b1b;
+            border: 1px solid #4a2323;
+            height: 38px;
+            border-radius: 8px;
+        }
+
+        .metrics-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-label-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .metric-color-node {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .metric-pill-value {
+            width: 44px;
+            height: 18px;
+            border-radius: 6px;
+        }
+
+        .blue-node { background: #0077b6; }
+        .blue-pill { background: #005f73; }
+        .green-node { background: #2a9d8f; }
+        .green-pill { background: #1d7065; }
+        .purple-node { background: #9b5de5; }
+        .red-pill { background: #b7094c; }
+
+        .large-display-block {
+            background: #0a2540;
+            height: 64px;
+            border-radius: 12px;
+        }
+
+        .critical-action-btn {
+            background: #9d2020;
+            height: 44px;
+            border-radius: 10px;
+        }
+
+        .split-footer-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .footer-btn-left { background: #1a2f1a; height: 32px; border-radius: 6px; }
+        .footer-btn-right { background: #241e30; height: 32px; border-radius: 6px; }
+
+        .bottom-nav-accent {
+            width: 40px;
+            height: 3px;
+            background: var(--accent-blue);
+            margin-top: 4px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-container">
+        
+        <!-- LEFT: WIRELESS DEVICE SECTION -->
+        <div class="hardware-section">
+            <div style="position: relative; width: 320px; height: 200px; display: flex; justify-content: center; align-items: center;">
+                
+                <!-- Charging Station / Wrist Base Mock -->
+                <div class="charging-dock">
+                    <div class="dock-indent">
+                        <div class="dock-dot"></div>
+                        <div class="dock-dot"></div>
+                        <div class="dock-dot"></div>
+                    </div>
+                </div>
+
+                <!-- Physical Smart Bracelet -->
+                <div class="bracelet-strap">
+                    <div class="strap-left"></div>
+                    <div class="bracelet-screen">
+                        <svg class="ecg-line-small" viewBox="0 0 100 40">
+                            <path d="M0,20 L30,20 L35,10 L40,30 L45,5 L50,25 L55,20 L100,20" />
+                        </svg>
+                        <div class="led-indicators">
+                            <div class="led"></div>
+                            <div class="led green"></div>
+                            <div class="led"></div>
+                            <div class="led"></div>
+                        </div>
+                    </div>
+                    <div class="strap-right">
+                        <div class="sensor-pin"></div>
+                        <div class="sensor-pin"></div>
+                        <div class="sensor-pin"></div>
+                    </div>
+                </div>
+
+                <!-- Wireless Link Data Vector Line -->
+                <svg style="position: absolute; left: 260px; top: 100px; width: 180px; height: 20px; z-index: 1;">
+                    <line x1="0" y1="10" x2="180" y2="10" stroke="#4ea8de" stroke-width="2" class="connection-line" />
+                    <polygon points="175,5 180,10 175,15" fill="#4ea8de" />
+                </svg>
+
+            </div>
+
+            <!-- Labels / Status Box Below Hardware -->
+            <div style="width: 200px; height: 60px; background: white; border-radius: 12px; border: 1.5px solid #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></div>
+        </div>
+
+        <!-- RIGHT: MOBILE APP INTERFACE SCREEN -->
+        <div class="phone-container">
+            
+            <!-- Safe-Side Application Header -->
+            <div class="app-header-status">
+                <div class="app-title">Safe-Side</div>
+                <div class="status-dot"></div>
+            </div>
+
+            <!-- Scrollable UI Grid Mockup -->
+            <div class="scrollable-content">
+                
+                <!-- Core Continuous Pulse/ECG Monitoring Panel -->
+                <div class="main-monitor-card">
+                    <svg class="ecg-wave-large" viewBox="0 0 200 60" preserveAspectRatio="none">
+                        <path d="M0,30 L40,30 L48,15 L56,45 L64,5 L72,35 L80,30 L130,30 L138,15 L146,45 L154,5 L162,35 L170,30 L200,30" />
+                    </svg>
+                    <div class="progress-bar-container">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Three Columns Health Modules Matrices -->
+                <div class="grid-3-cards">
+                    <div class="small-card"></div>
+                    <div class="small-card"></div>
+                    <div class="small-card"></div>
+                </div>
+
+                <!-- Full-Width Secondary Readout Field -->
+                <div class="wide-card-muted"></div>
+
+                <!-- Anomaly / Threat Alert Diagnostic Area -->
+                <div class="alert-zone-card"></div>
+
+                <!-- Historical Baseline Timeline Slider -->
+                <div class="progress-bar-container" style="margin: 4px 0;">
+                    <div class="progress-fill" style="width: 72%; background: var(--accent-gold);"></div>
+                </div>
+
+                <!-- Vital Analytics Dynamic Metrics Stack -->
+                <div class="metrics-list-container">
+                    <div class="metric-row">
+                        <div class="metric-label-group">
+                            <div class="metric-color-node blue-node"></div>
+                        </div>
+                        <div class="metric-pill-value blue-pill"></div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-label-group">
+                            <div class="metric-color-node green-node"></div>
+                        </div>
+                        <div class="metric-pill-value green-pill"></div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-label-group">
+                            <div class="metric-color-node purple-node"></div>
+                        </div>
+                        <div class="metric-pill-value red-pill"></div>
+                    </div>
+                </div>
+
+                <!-- Comprehensive Insight Database Block -->
+                <div class="large-display-block"></div>
+
+                <!-- Emergency Dispatch / SOS System Trigger -->
+                <div class="critical-action-btn"></div>
+
+                <!-- Auxiliary Configuration Toggles -->
+                <div class="split-footer-btns">
+                    <div class="footer-btn-left"></div>
+                    <div class="footer-btn-right"></div>
+                </div>
+
+                <!-- Navigation Indicator -->
+                <div style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 4px;">
+                    <div class="bottom-nav-accent"></div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
